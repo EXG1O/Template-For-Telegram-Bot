@@ -1,2 +1,2 @@
-# Frame-For-Telgram-Bot
-Frame For Telgram Bot - готовый каркас для ваших Telegram ботов.
+# Template-For-Telgram-Bot
+Template For Telgram Bot - готовый каркас для ваших Telegram ботов.
