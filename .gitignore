@@ -1,1 +1,8 @@
+# Папки
+__pycache__/
+env/
 
+# Файлы
+DataBase.db
+config.ini
+.log
