@@ -5,18 +5,25 @@ import telegram
 from telegram_bot.keyboard import Keyboard
 
 from configparser import ConfigParser
+from threading import Thread, Lock
+import sqlite3
 import logging
 
 class <-TelegramBotClassName->TelegramBot:
 	def __init__(self, config: ConfigParser):
 		self.config = config
 
+		self.updater = Updater(token=self.config['<-TelegramBotClassName->TelegramBot']['Token'])
+		self.dispatcher = self.updater.dispatcher
+
+		self.db = sqlite3.connect(f"{self.config['DEFAULT']['DataPath']}/DataBase.db")
+		self.sql = self.db.cursor()
+
 		self.commands = {
 			'start': self.start_command
 		}
 
-		self.updater = Updater(token=self.config['<-TelegramBotClassName->TelegramBot']['Token'])
-		self.dispatcher = self.updater.dispatcher
+		self.lock = Lock()
 
 	def get_user_data(func):
 		def wrapper(self, update: telegram.update.Update, context: telegram.ext.callbackcontext.CallbackContext):
