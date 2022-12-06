@@ -28,14 +28,17 @@ class Keyboard:
 						buttons_.append(InlineKeyboardButton(text=button['text'], callback_data=button['callback_data']))
 					else:
 						buttons_.append(KeyboardButton(text=button['text']))
+					
 					if len(buttons) > 8:
 						if (num) % 8 == 0:
 							self.kb.add(*buttons_)
 							buttons_.clear()
 						elif num == len(buttons):
 							self.kb.add(*buttons_)
+							buttons_.clear()
 					else:
 						self.kb.add(*buttons_)
+						buttons_.clear()
 			else:
 				raise Exception('Аргумент "buttons" пустой!')
 		else:

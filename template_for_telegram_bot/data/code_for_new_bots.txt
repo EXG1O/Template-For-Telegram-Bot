@@ -1,56 +1,110 @@
+# Для работы Telegram бота
 from telegram.ext import Updater, MessageHandler, CommandHandler, Filters, CallbackQueryHandler
 import telegram.ext
 import telegram
 
+# Для работы с клавиатурой и базой данных Telegram бота
 from telegram_bot.keyboard import Keyboard
+from database import DataBase
 
+# Другое
 from configparser import ConfigParser
-from threading import Thread, Lock
-import sqlite3
-import logging
+from datetime import datetime
+from threading import Lock
 
+# Класс <-TelegramBotClassName->TelegramBot
 class <-TelegramBotClassName->TelegramBot:
-	def __init__(self, config: ConfigParser):
+	def __init__(self, config: ConfigParser, lock: Lock) -> None: # Инициализация класса <-TelegramBotClassName->TelegramBot
 		self.config = config
 
-		self.updater = Updater(token=self.config['<-TelegramBotClassName->TelegramBot']['Token'])
-		self.dispatcher = self.updater.dispatcher
-
-		self.db = sqlite3.connect(f"{self.config['DEFAULT']['DataPath']}/DataBase.db")
-		self.sql = self.db.cursor()
+		self.db = DataBase(config, lock)
 
 		self.commands = {
 			'start': self.start_command
 		}
 
-		self.lock = Lock()
-
-	def get_user_data(func):
+	def check_user(func) -> None: # Декоратор для проверки доступа пользователя к данному боту
 		def wrapper(self, update: telegram.update.Update, context: telegram.ext.callbackcontext.CallbackContext):
 			chat_id, user_id, username = update.effective_chat.id, update.effective_user.id, update.effective_user.name
 
-			func(self, update, context, chat_id, user_id, username)
+			user: tuple | None = self.db.get_data(table='<-TelegramBotClassName->TelegramBotUsers', where=f"user_id='{user_id}'", fetchone=True)
+			superuser: tuple | None = self.db.get_data(table='Superusers', where=f"username='{username}'", fetchone=True)
+			if user == None:
+				values = (
+					user_id,
+					chat_id,
+					username,
+					str(datetime.now()).split('.')[0],
+					0 if self.config['<-TelegramBotClassName->TelegramBot']['Private'] == '1' else 1
+				)
+				self.db.insert_into(table='<-TelegramBotClassName->TelegramBotUsers', values=values)
+
+				if superuser == None:
+					self.config.read('./data/config.ini')
+					if self.config['<-TelegramBotClassName->TelegramBot']['Private'] == '1':
+						context.bot.send_message(chat_id=chat_id, text='Вы успешно добавленны в базу данных пользователей данного бота, ожидайте пока вам разрешат им пользоваться.')
+					else:
+						context.bot.send_message(chat_id=chat_id, text='Вы успешно добавленны в базу данных пользователей данного бота, и можете пользоваться ботом.')
+
+			if superuser == None:
+				if user != None:
+					self.config.read('./data/config.ini')
+					if user[4] == 1 or self.config['<-TelegramBotClassName->TelegramBot']['Private'] == '0':
+						func(self, update, context)
+					else:
+						context.bot.send_message(chat_id=chat_id, text='Вы не имеете доступ к данному боту!')
+			else:
+				func(self, update, context)
 		wrapper.__name__ = func.__name__
 		return wrapper
 
-	@get_user_data
-	def handle_callback_query(self, update: telegram.update.Update, context: telegram.ext.callbackcontext.CallbackContext, chat_id: int, user_id: int, username: str):
-		data = update.callback_query.data
-		print(f'{chat_id} - {username} - {data}')
-	
-	@get_user_data
-	def new_message(self, update: telegram.update.Update, context: telegram.ext.callbackcontext.CallbackContext, chat_id: int, user_id: int, username: str):
-		message = update.effective_message.text
-		print(f'{chat_id} - {username} - {message}')
+	def get_user_data(arugments_list: list) -> None: # Декоратор для получения необходимой информации
+		def decorator(func):
+			def wrapper(self, update: telegram.update.Update, context: telegram.ext.callbackcontext.CallbackContext):
+				arugments = {
+					'update': update,
+					'context': context,
+					'user_id': update.effective_user.id,
+					'chat_id': update.effective_chat.id,
+					'username': update.effective_user.username,
+					'message_id': update.effective_message.message_id
+				}
+				if update.callback_query != None:
+					arugments.update({'callback_data': update.callback_query.data})
 
-	@get_user_data
-	def start_command(self, update: telegram.update.Update, context: telegram.ext.callbackcontext.CallbackContext, chat_id: int, user_id: int, username: str):
+				arugments_dict = {'self': self}
+				for arugment in arugments_list:
+					if arugment in arugments:
+						arugments_dict.update({arugment: arugments[arugment]})
+				func(**arugments_dict)
+			wrapper.__name__ = func.__name__
+			return wrapper
+		return decorator
+
+	@check_user
+	@get_user_data(arugments_list=['update', 'user_id', 'username'])
+	def handle_callback_query(self, update: telegram.update.Update, user_id: int, username: str): # Метод для обработки Callback
+		data = update.callback_query.data
+		print(f'{user_id} - {username} - {data}')
+	
+	@check_user
+	@get_user_data(arugments_list=['update', 'user_id', 'username'])
+	def new_message(self, update: telegram.update.Update, user_id: int, username: str): # Метод для обработки сообщений
+		message = update.effective_message.text
+		print(f'{user_id} - {username} - {message}')
+
+	@check_user
+	@get_user_data(arugments_list=['context', 'chat_id'])
+	def start_command(self, context: telegram.ext.callbackcontext.CallbackContext, chat_id: int): # Метод для команды /start
 		context.bot.send_message(chat_id=chat_id, text='Start command!')
 
-	def start(self):
+	def start(self): # Метод для запуска Telegram бота
+		self.updater = Updater(token=self.config['<-TelegramBotClassName->TelegramBot']['Token'])
+		self.dispatcher = self.updater.dispatcher
+
 		self.dispatcher.add_handler(CallbackQueryHandler(self.handle_callback_query))
 
-		new_message_handler = MessageHandler(Filters.text, self.new_message)
+		new_message_handler = MessageHandler(Filters.text & (~Filters.command), self.new_message)
 		self.dispatcher.add_handler(new_message_handler)
 
 		for command in self.commands:
@@ -59,5 +113,5 @@ class <-TelegramBotClassName->TelegramBot:
 
 		self.updater.start_polling()
 
-if __name__ == '__main__':
+if __name__ == '__main__': # Проверка, как был запущен скрипт
 	raise Exception('Нельзя запускать этот скрипт как главный скрипт!')
