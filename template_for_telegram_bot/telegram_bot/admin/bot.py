@@ -30,6 +30,9 @@ class AdminTelegramBot:
 			'edit_telegram_bot_type': self.edit_telegram_bot_type, # 1:1:1
 			'edit_telegram_bot_token': self.edit_telegram_bot_token, # 1:1:2
 			'telegram_bot_users': self.telegram_bot_users, # 1:2
+			'give_access_user': self.give_access_user, # 1:2:1
+			'make_superuser': self.make_superuser, # 1:2:2
+			'delete_user': self.delete_user, # 1:2:3
 			'add_telegram_bot': self.add_telegram_bot, # 1:3
 			'delete_telegram_bot': self.delete_telegram_bot, # 1:4
 			'superusers': self.superusers, # 2
@@ -178,7 +181,7 @@ class AdminTelegramBot:
 		telegram_bots_kb.add_button([{'text': 'Вернуться', 'callback_data': 'back_to_admin_menu'}])
 		context.bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=message, parse_mode='HTML', reply_markup=telegram_bots_kb.get_keyboard())
 
-	def select_telegram_bot(func) -> None: # Декоратор для получения ID бота, который выберет пользователь
+	def select_telegram_bot(func) -> None: # Декоратор для получения ID Telegram бота, который выберет пользователь
 		def wrapper(*args, **kwargs):
 			callback_data: str = kwargs['callback_data']
 			if callback_data.find(':') == -1:
@@ -192,7 +195,7 @@ class AdminTelegramBot:
 
 				select_telegram_bot_kb = Keyboard(inline=True)
 				select_telegram_bot_kb.add_button(buttons)
-				select_telegram_bot_kb.add_button([{'text': 'Вернуться', 'callback_data': 'back_to_admin_menu'}])
+				select_telegram_bot_kb.add_button([{'text': 'Вернуться', 'callback_data': 'telegram_bots'}])
 				context.bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=message, parse_mode='HTML', reply_markup=select_telegram_bot_kb.get_keyboard())
 			else:
 				del kwargs['callback_data']
@@ -238,9 +241,9 @@ class AdminTelegramBot:
 		self.wait_user_message.update({user_id: f'edit_telegram_bot_token:{message_id}:{telegram_bot_id}'})
 		context.bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=f'Введите новый токен {telegram_bot_name.capitalize()} Telegram бота:', reply_markup=self.cancel_comand_kb.get_keyboard())
 
-	@get_user_data(arugments_list=['context', 'user_id', 'chat_id', 'message_id', 'callback_data'])
+	@get_user_data(arugments_list=['context', 'chat_id', 'message_id', 'callback_data'])
 	@select_telegram_bot
-	def telegram_bot_users(self, context: telegram.ext.callbackcontext.CallbackContext, user_id: int, chat_id: int, message_id: int, telegram_bot_id: int) -> None: # Метод для кнопки 1:2
+	def telegram_bot_users(self, context: telegram.ext.callbackcontext.CallbackContext, chat_id: int, message_id: int, telegram_bot_id: int) -> None: # Метод для кнопки 1:2
 		telegram_bot_name: str = self.db.get_data(table='TelegramBots', where=f"id='{telegram_bot_id}'", fetchone=True)[1]
 		users: list = self.db.get_data(table=f'{telegram_bot_name.capitalize()}TelegramBotUsers', fetchall=True)
 
@@ -248,12 +251,82 @@ class AdminTelegramBot:
 		for user in users:
 			message += f"""\n{num}. Пользователь: {user[2]} | ID пользователя: {user[0]} | ID чата: {user[1]} | Дата активации бота: {user[3]} | Пользователь {'не' if user[4] == 0 and self.config['AdminTelegramBot']['Private'] == '1' and self.db.get_data(table='Superusers', where=f"username='{user[2]}'", fetchone=True) == None else ''} имеет доступ к боту."""
 
+		telegram_bot_users_kb = Keyboard(inline=True)
 		if message == f'<b>Список пользователей {telegram_bot_name.capitalize()} Telegram бота:</b>':
 			message = f'<b>Вашего {telegram_bot_name.capitalize()} Telegram бота ещё никто не активировал!</b>'
-
-		telegram_bot_users_kb = Keyboard(inline=True)
+		else:
+			telegram_bot_users_kb.add_button([{'text': 'Выдать доступ к боту', 'callback_data': f'give_access_user:{telegram_bot_id}:None'}])
+			telegram_bot_users_kb.add_button([{'text': 'Сделать суперпользователем', 'callback_data': f'make_superuser:{telegram_bot_id}:None'}])
+			telegram_bot_users_kb.add_button([{'text': 'Удалить пользователя', 'callback_data': f'delete_user:{telegram_bot_id}:None'}])
 		telegram_bot_users_kb.add_button([{'text': 'Вернуться', 'callback_data': 'telegram_bots'}])
 		context.bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=message, parse_mode='HTML', reply_markup=telegram_bot_users_kb.get_keyboard())
+
+	def select_telegram_bot_user(func) -> None: # Декоратор для получения ID пользователя Telegram бота, который выберет пользователь
+		def wrapper(*args, **kwargs):
+			callback_data: str = kwargs['callback_data']
+			callback_data_elements = callback_data.split(':')
+			telegram_bot_id = int(callback_data_elements[1])
+
+			if callback_data_elements[2] == 'None':
+				self, context, chat_id, message_id = kwargs['self'], kwargs['context'], kwargs['chat_id'], kwargs['message_id']
+				telegram_bot_name: str = self.db.get_data(table='TelegramBots', where=f'id={telegram_bot_id}', fetchone=True)[1]
+
+				buttons, message, num = [], f'<b>Выберите пользователя {telegram_bot_name.capitalize()} Telegram бота:</b>', 1
+				for user in self.db.get_data(table=f'{telegram_bot_name.capitalize()}TelegramBotUsers', fetchall=True):
+					message += f'\n{num}. {user[2]}'
+					buttons.append({'text': str(num), 'callback_data': f'{func.__name__}:{telegram_bot_id}:{user[0]}'})
+					num += 1
+
+				select_telegram_bot_user_kb = Keyboard(inline=True)
+				select_telegram_bot_user_kb.add_button(buttons)
+				select_telegram_bot_user_kb.add_button([{'text': 'Вернуться', 'callback_data': f'telegram_bot_users:{telegram_bot_id}'}])
+				context.bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=message, parse_mode='HTML', reply_markup=select_telegram_bot_user_kb.get_keyboard())
+			else:
+				del kwargs['callback_data']
+				kwargs.update({'telegram_bot_id': telegram_bot_id})
+				kwargs.update({'telegram_bot_user_id': int(callback_data_elements[2])})
+				func(*args, **kwargs)
+		wrapper.__name__ = func.__name__
+		return wrapper
+
+	@get_user_data(arugments_list=['context', 'chat_id', 'message_id', 'callback_data'])
+	@select_telegram_bot_user
+	def give_access_user(self, context: telegram.ext.callbackcontext.CallbackContext, chat_id: int, message_id: int, telegram_bot_id: int, telegram_bot_user_id: int) -> None: # Метод для кнопки 1:2:1
+		telegram_bot_name: str = self.db.get_data(table='TelegramBots', where=f'id={telegram_bot_id}', fetchone=True)[1]
+		user = self.db.get_data(table=f'{telegram_bot_name.capitalize()}TelegramBotUsers', where=f'user_id={telegram_bot_user_id}', fetchone=True)
+
+		give_access_user_kb = Keyboard(inline=True)
+		give_access_user_kb.add_button([{'text': 'Вернуться', 'callback_data': f'telegram_bot_users:{telegram_bot_id}'}])
+
+		if user[4] == 0 and self.db.get_data(table='Superusers', where=f"username='{user[2]}'", fetchone=True) == None:
+			self.db.edit_value(table=f'{telegram_bot_name.capitalize()}TelegramBotUsers', value='allowed_user=1', where=f'user_id={telegram_bot_user_id}')
+			context.bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=f'Вы успешно выдали доступ пользователю {user[2]} к {telegram_bot_name.capitalize()} Telegram боту.', parse_mode='HTML', reply_markup=give_access_user_kb.get_keyboard())
+		else:
+			context.bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=f'Пользователь {user[2]} уже имеет доступ к {telegram_bot_name.capitalize()} Telegram боту!', parse_mode='HTML', reply_markup=give_access_user_kb.get_keyboard())
+
+	@get_user_data(arugments_list=['context', 'chat_id', 'message_id', 'callback_data'])
+	@select_telegram_bot_user
+	def make_superuser(self, context: telegram.ext.callbackcontext.CallbackContext, chat_id: int, message_id: int, telegram_bot_id: int, telegram_bot_user_id: int) -> None: # Метод для кнопки 1:2:2
+		telegram_bot_name: str = self.db.get_data(table='TelegramBots', where=f'id={telegram_bot_id}', fetchone=True)[1]
+		username: str = self.db.get_data(table=f'{telegram_bot_name.capitalize()}TelegramBotUsers', where=f'user_id={telegram_bot_user_id}', fetchone=True)[2]
+
+		result = GlobalFunctions.add_superuser(self.db, username)
+
+		make_superuser_kb = Keyboard(inline=True)
+		make_superuser_kb.add_button([{'text': 'Вернуться', 'callback_data': f'telegram_bot_users:{telegram_bot_id}'}])
+		context.bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=result, parse_mode='HTML', reply_markup=make_superuser_kb.get_keyboard())
+
+	@get_user_data(arugments_list=['context', 'chat_id', 'message_id', 'callback_data'])
+	@select_telegram_bot_user
+	def delete_user(self, context: telegram.ext.callbackcontext.CallbackContext, chat_id: int, message_id: int, telegram_bot_id: int, telegram_bot_user_id: int) -> None: # Метод для кнопки 1:2:2
+		telegram_bot_name: str = self.db.get_data(table='TelegramBots', where=f'id={telegram_bot_id}', fetchone=True)[1]
+		username: str = self.db.get_data(table=f'{telegram_bot_name.capitalize()}TelegramBotUsers', where=f'user_id={telegram_bot_user_id}', fetchone=True)[2]
+
+		self.db.delete_record(table=f'{telegram_bot_name.capitalize()}TelegramBotUsers', where=f'user_id={telegram_bot_user_id}')
+
+		delete_user_kb = Keyboard(inline=True)
+		delete_user_kb.add_button([{'text': 'Вернуться', 'callback_data': f'telegram_bot_users:{telegram_bot_id}'}])
+		context.bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=f'Вы успешно удалили пользователя {username} из {telegram_bot_name.capitalize()} Telegram бота.', parse_mode='HTML', reply_markup=delete_user_kb.get_keyboard())
 
 	@get_user_data(arugments_list=['context', 'user_id', 'chat_id', 'message_id'])
 	def add_telegram_bot(self, context: telegram.ext.callbackcontext.CallbackContext, user_id: int, chat_id: int, message_id: int) -> None: # Метод для кнопки 1:3
@@ -264,7 +337,10 @@ class AdminTelegramBot:
 	@select_telegram_bot
 	def delete_telegram_bot(self, context: telegram.ext.callbackcontext.CallbackContext, chat_id: int, message_id: int, telegram_bot_id: int) -> None: # Метод для кнопки 1:4
 		result = GlobalFunctions.delete_telegram_bot(self.db, self.config, telegram_bot_id)
-		context.bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=result, reply_markup=self.back_to_admin_menu_kb.get_keyboard())
+
+		delete_telegram_bot_kb = Keyboard(inline=True)
+		delete_telegram_bot_kb.add_button([{'text': 'Вернуться', 'callback_data': 'telegram_bots'}])
+		context.bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=result, reply_markup=delete_telegram_bot_kb.get_keyboard())
 
 	@get_user_data(arugments_list=['context', 'chat_id', 'message_id'])
 	def superusers(self, context: telegram.ext.callbackcontext.CallbackContext, chat_id: int, message_id: int) -> None: # Метод для кнопки 2
@@ -299,10 +375,10 @@ class AdminTelegramBot:
 					buttons.append({'text': str(num), 'callback_data': f'{func.__name__}:{superuser[0]}'})
 					num += 1
 
-				select_telegram_bot_kb = Keyboard(inline=True)
-				select_telegram_bot_kb.add_button(buttons)
-				select_telegram_bot_kb.add_button([{'text': 'Вернуться', 'callback_data': 'back_to_admin_menu'}])
-				context.bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=message, parse_mode='HTML', reply_markup=select_telegram_bot_kb.get_keyboard())
+				select_superuser_kb = Keyboard(inline=True)
+				select_superuser_kb.add_button(buttons)
+				select_superuser_kb.add_button([{'text': 'Вернуться', 'callback_data': 'back_to_admin_menu'}])
+				context.bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=message, parse_mode='HTML', reply_markup=select_superuser_kb.get_keyboard())
 			else:
 				del kwargs['callback_data']
 				kwargs.update({'superuser_id': int(callback_data.split(':')[1])})
