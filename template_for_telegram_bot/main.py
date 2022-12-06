@@ -47,12 +47,12 @@ class Main:
 
 	def start_telegram_bots(self) -> None: # Метод для запуска Telegram ботов
 		if self.config['AdminTelegramBot']['Token'] == 'None':
-			self.config['AdminTelegramBot']['Token'] = input(':: Введите Token Admin Telegram бота: ')
+			self.config['AdminTelegramBot']['Token'] = input(':: Введите токен Admin Telegram бота: ')
 			with open('./data/config.ini', 'w') as config_file:
 				self.config.write(config_file)
 			self.config.read('data/config.ini')
 		
-		print('\nЗапуск Telegram ботов...')
+		print('Запуск Telegram ботов...')
 		for telegram_bot in self.db.get_data(table='TelegramBots', fetchall=True):
 			with open('./data/code_for_start_bots.txt', 'r') as code_for_start_bots_file:
 				code_for_start_bots = code_for_start_bots_file.read()
@@ -61,10 +61,9 @@ class Main:
 
 			try:
 				exec(code_for_start_bots)
+				print(f'{telegram_bot[1].capitalize()} Telegram бот успешно запущен.')
 			except:
 				print(f'Не удалось запустить {telegram_bot[1].capitalize()} Telegram бота!')
-			finally:
-				print(f'{telegram_bot[1].capitalize()} Telegram бот успешно запущен.')
 
 	def add_telegram_bot(self) -> None: # Метод для добавления Telegram ботов
 		telegram_bot_name = input(':: Придумайте имя Telegram боту: ').lower()
