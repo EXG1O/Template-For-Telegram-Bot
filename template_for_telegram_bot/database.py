@@ -27,6 +27,11 @@ class DataBase:
 	def create_table(self, table: str, values: str) -> None: # Метод для создания таблиц в базе данных
 		self.sql.execute(f"CREATE TABLE IF NOT EXISTS {table} ({values})")
 		self.db.commit()
+	
+	@lock_and_unlock_theards
+	def drop_table(self, table: str) -> None: # Метод для удаления таблиц из базы данных
+		self.sql.execute(f"DROP TABLE IF EXISTS {table}")
+		self.db.commit()
 
 	@lock_and_unlock_theards
 	def insert_into(self, table: str, values: tuple) -> None: # Метод для записи данных в таблицу баз данных

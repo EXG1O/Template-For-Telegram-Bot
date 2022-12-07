@@ -39,6 +39,8 @@ def delete_telegram_bot(db: DataBase, config: configparser.ConfigParser, telegra
 		db.delete_record(table='TelegramBots', where=f"id='{telegram_bot_id}'")
 		shutil.rmtree(f'./telegram_bot/{telegram_bot_name}')
 
+		db.drop_table(table=f'{telegram_bot_name.capitalize()}TelegramBotUsers')
+
 		with open('./data/config.ini', 'r') as config_file:
 			config_str = config_file.read()
 			lines = config_str.split('\n')
