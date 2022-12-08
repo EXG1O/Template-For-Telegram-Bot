@@ -59,6 +59,7 @@ class Main:
 			code_for_start_bots = telegram_bot[1].capitalize().join(code_for_start_bots.split('<-TelegramBotClassName->'))
 			code_for_start_bots = telegram_bot[1].join(code_for_start_bots.split('<-TelegramBotName->'))
 
+			print()
 			try:
 				exec(code_for_start_bots)
 				print(f'{telegram_bot[1].capitalize()} Telegram бот успешно запущен.')
