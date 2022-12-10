@@ -84,8 +84,6 @@ class AdminTelegramBot:
 					message_id = int(data[1])
 					telegram_bot_name: str = data[2]
 
-					print(data)
-
 					context.bot.delete_message(chat_id=chat_id, message_id=update.effective_message.message_id)
 					if telegram_bot_name == 'None':
 						self.wait_user_message.update({user_id: f'add_telegram_bot:{message_id}:{message}'})
