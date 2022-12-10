@@ -26,7 +26,6 @@ cd Template-For-Telegram-Bot
 python3 -m venv env
 source env/bin/activate
 pip3 install -r requirements.txt
-cd template_for_telegram_bot
 ```
 3. Для запуска шаблона введите:
 ```sh
