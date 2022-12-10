@@ -1,12 +1,22 @@
-# Для работы с DataBase.db
-from configparser import ConfigParser
 from threading import Lock
 import sqlite3
 
+# Многопоточный Singleton
+class SingletonMeta(type):
+	_instances = {}
+	_lock = Lock()
+
+	def __call__(cls, *args, **kwargs):
+		with cls._lock:
+			if cls not in cls._instances:
+				instance = super().__call__(*args, **kwargs)
+				cls._instances[cls] = instance
+		return cls._instances[cls]
+
 # Класс DataBase
-class DataBase:
-	def __init__(self, config: ConfigParser, lock: Lock) -> None: # Инициализация класса DataBase
-		self.lock = lock
+class DataBase(metaclass=SingletonMeta):
+	def __init__(self) -> None: # Инициализация класса DataBase
+		self.lock = Lock()
 
 		self.db = sqlite3.connect('./data/DataBase.db', check_same_thread=False)
 		self.sql = self.db.cursor()
@@ -14,12 +24,8 @@ class DataBase:
 	def lock_and_unlock_theards(func): # Декоратор для Lock/Unlock всех потоков в программе
 		def wrapper(*args, **kwargs):
 			self = args[0]
-
-			self.lock.acquire()
-			data = func(*args, **kwargs)
-			self.lock.release()
-
-			return data
+			with self.lock:
+				return func(*args, **kwargs)
 		wrapper.__name__ = func.__name__
 		return wrapper
 

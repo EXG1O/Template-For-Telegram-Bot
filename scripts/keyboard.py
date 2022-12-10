@@ -1,4 +1,3 @@
-# Для работы с клавиатурой Telegram ботов
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 
 # Класс Keyboard

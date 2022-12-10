@@ -1,12 +1,17 @@
-# Для работы скрипта
-from database import DataBase
+from scripts.database import DataBase
 
-# Другое
-import configparser
 import shutil
 import os
 
-def add_telegram_bot(db: DataBase, config: configparser.ConfigParser, telegram_bot_name: str, telegram_bot_token: str) -> str: # Функция для добавления Telegram ботов
+def get_db(func): # Декоратор для получения db аргумента
+	def wrapper(*args, **kwargs):
+		kwargs.update({'db': DataBase()})
+		return func(*args, **kwargs)
+	wrapper.__name__ = func.__name__
+	return wrapper
+
+@get_db
+def add_telegram_bot(db: DataBase, telegram_bot_name: str, telegram_bot_token: str) -> str: # Функция для добавления Telegram ботов
 	if db.get_data(table='TelegramBots', where=f"name='{telegram_bot_name}'", fetchone=True) == None:
 		with open('./data/config.ini', 'a') as config_file:
 			config_file.write(f'[{telegram_bot_name.capitalize()}TelegramBot]\nPrivate=1\nToken={telegram_bot_token}\n\n')
@@ -21,23 +26,24 @@ def add_telegram_bot(db: DataBase, config: configparser.ConfigParser, telegram_b
 		"""
 		db.create_table(table=f'{telegram_bot_name.capitalize()}TelegramBotUsers', values=values)
 
-		os.mkdir(f'./telegram_bot/{telegram_bot_name}')
-		with open('./data/code_for_new_bots.txt', 'r') as code_for_new_bots_file:
+		os.mkdir(f'./telegram_bots/{telegram_bot_name}')
+		with open('./data/code_for_new_bots.py', 'r') as code_for_new_bots_file:
 			code_for_new_bots = code_for_new_bots_file.read()
-		code_for_new_bots = telegram_bot_name.capitalize().join(code_for_new_bots.split('<-TelegramBotClassName->'))
-		with open(f'./telegram_bot/{telegram_bot_name}/bot.py', 'w') as bot_file:
+		code_for_new_bots = telegram_bot_name.capitalize().join(code_for_new_bots.split('Template'))
+		with open(f'./telegram_bots/{telegram_bot_name}/bot.py', 'w') as bot_file:
 			bot_file.write(code_for_new_bots)
 
 		return 'Вы успешно добавили Telegram бота.'
 	else:
 		return 'Telegram бот с таким именем уже создан!'
 
-def delete_telegram_bot(db: DataBase, config: configparser.ConfigParser, telegram_bot_id: int) -> str | tuple: # Функция для удаления Telegram бота
+@get_db
+def delete_telegram_bot(db: DataBase, telegram_bot_id: int) -> str | tuple: # Функция для удаления Telegram бота
 	telegram_bot_name: str = db.get_data(table='TelegramBots', where=f"id='{telegram_bot_id}'", fetchone=True)[1]
 
 	if telegram_bot_name != 'admin':
 		db.delete_record(table='TelegramBots', where=f"id='{telegram_bot_id}'")
-		shutil.rmtree(f'./telegram_bot/{telegram_bot_name}')
+		shutil.rmtree(f'./telegram_bots/{telegram_bot_name}')
 
 		db.drop_table(table=f'{telegram_bot_name.capitalize()}TelegramBotUsers')
 
@@ -62,6 +68,7 @@ def delete_telegram_bot(db: DataBase, config: configparser.ConfigParser, telegra
 	else:
 		return 'Нельзя удалять Admin Telegram бота!'
 
+@get_db
 def add_superuser(db: DataBase, username: str) -> str: # Функция для добавления суперпользователя
 	if username.find('@') != -1:
 		if db.get_data(table='Superusers', where=f"username='{username}'", fetchone=True) == None:
@@ -73,6 +80,7 @@ def add_superuser(db: DataBase, username: str) -> str: # Функция для �
 	else:
 		return 'Вы неверно ввели @ пользователя!'
 
+@get_db
 def delete_superuser(db: DataBase, superuser_id: int) -> str: # Функция для удаления суперпользователя
 	username: str = db.get_data(table='Superusers', where=f'id={superuser_id}', fetchone=True)[1]
 	

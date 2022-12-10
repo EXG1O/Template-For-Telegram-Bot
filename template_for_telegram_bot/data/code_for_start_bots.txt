@@ -1,5 +1,0 @@
-from telegram_bot.<-TelegramBotName->.bot import <-TelegramBotClassName->TelegramBot
-
-<-TelegramBotName->_telegram_bot = <-TelegramBotClassName->TelegramBot(self.config, self.lock)
-th = Thread(target=<-TelegramBotName->_telegram_bot.start)
-th.start()

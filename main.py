@@ -1,10 +1,8 @@
-# Для работы класса Main
-import global_functions as GlobalFunctions
-from database import DataBase
+from scripts.custom_configparser import CustomConfigParser
+import scripts.functions as GlobalFunctions
+from scripts.database import DataBase
 
-# Другое
-from threading import Thread, Lock
-import configparser
+from threading import Thread
 import logging
 import shutil
 import sys
@@ -16,16 +14,15 @@ class Main:
 		print('*** Template For Telegram Bot ***')
 		print('Автор: https://t.me/pycoder39\n')
 
-		self.config = configparser.ConfigParser()
+		self.config = CustomConfigParser().config
 		if 'config.ini' not in os.listdir('./data'):
 			with open('./data/config.ini', 'w') as config_file:
 				config_file.write('[AdminTelegramBot]\nPrivate=1\nToken=None\n')
 		self.config.read('./data/config.ini')
 
 		logging.basicConfig(filename='./data/.log', filemode='a', level=logging.NOTSET, format="%(asctime)s - %(levelname)s: %(message)s")
-		
-		self.lock = Lock()
-		self.db = DataBase(self.config, self.lock)
+
+		self.db = DataBase()
 		self.db.create_table(table='TelegramBots', values='id INT NOT NULL, name TEXT PRIMARY KEY NOT NULL')
 		self.db.create_table(table='Superusers', values='id INT NOT NULL, username TEXT PRIMARY KEY NOT NULL')
 		if self.db.get_data(table='TelegramBots', where="name='admin'", fetchone=True) == None:
@@ -51,15 +48,15 @@ class Main:
 			with open('./data/config.ini', 'w') as config_file:
 				self.config.write(config_file)
 			self.config.read('data/config.ini')
-		
+			print()
+
 		print('Запуск Telegram ботов...')
 		for telegram_bot in self.db.get_data(table='TelegramBots', fetchall=True):
-			with open('./data/code_for_start_bots.txt', 'r') as code_for_start_bots_file:
+			with open('./data/code_for_start_bots.py', 'r') as code_for_start_bots_file:
 				code_for_start_bots = code_for_start_bots_file.read()
-			code_for_start_bots = telegram_bot[1].capitalize().join(code_for_start_bots.split('<-TelegramBotClassName->'))
-			code_for_start_bots = telegram_bot[1].join(code_for_start_bots.split('<-TelegramBotName->'))
+			code_for_start_bots = telegram_bot[1].capitalize().join(code_for_start_bots.split('Template'))
+			code_for_start_bots = telegram_bot[1].join(code_for_start_bots.split('template'))
 
-			print()
 			try:
 				exec(code_for_start_bots)
 				print(f'{telegram_bot[1].capitalize()} Telegram бот успешно запущен.')
@@ -71,7 +68,7 @@ class Main:
 		telegram_bot_token = input (':: Введите Token Telegram бота: ')
 
 		print('\nДобавления Telegram бота...')
-		result = GlobalFunctions.add_telegram_bot(self.db, self.config, telegram_bot_name, telegram_bot_token)
+		result = GlobalFunctions.add_telegram_bot(telegram_bot_name=telegram_bot_name, telegram_bot_token=telegram_bot_token)
 		print(result)
 
 	def delete_telegram_bot(self) -> None: # Метод для удаления Telegram бота
@@ -94,7 +91,7 @@ class Main:
 					num += 1
 
 				print('\nУдаление Telegram бота...')
-				result = GlobalFunctions.delete_telegram_bot(self.db, self.config, telegram_bot_id)
+				result = GlobalFunctions.delete_telegram_bot(telegram_bot_id=telegram_bot_id)
 				print(result)
 			else:
 				assert Exception('Такого номера Telegram бота нет в списке!')
@@ -106,7 +103,7 @@ class Main:
 		username = input(':: Введите @ пользователя: ')
 
 		print('\nДобавления суперпользователя...')
-		result = GlobalFunctions.add_superuser(self.db, username)
+		result = GlobalFunctions.add_superuser(username=username)
 		print(result)
 
 	def delete_superuser(self) -> None: # Метод для удаления суперпользователя
@@ -130,7 +127,7 @@ class Main:
 						num += 1
 
 					print('\nУдаление суперпользователя...')
-					result = GlobalFunctions.delete_superuser(self.db, superuser_id)
+					result = GlobalFunctions.delete_superuser(superuser_id=superuser_id)
 					print(result)
 				else:
 					assert Exception('Такого номера суперпользователя нет в списке!')
@@ -142,12 +139,12 @@ class Main:
 	def clear(self) -> None: # Метод для очистки всех созданных файлов
 		print('Очистка...')
 		for file in os.listdir('./data'):
-			if file not in ['code_for_new_bots.txt', 'code_for_start_bots.txt']:
+			if file not in ['code_for_new_bots.py', 'code_for_start_bots.py']:
 				os.remove(f'./data/{file}')
 		
-		for folder in os.listdir('./telegram_bot'):
-			if folder not in ['admin', 'keyboard.py']:
-				shutil.rmtree(f'./telegram_bot/{folder}')
+		for folder in os.listdir('./telegram_bots'):
+			if folder not in ['admin']:
+				shutil.rmtree(f'./telegram_bots/{folder}')
 		print('Успешная очистка.')
 
 if __name__ == '__main__': # Проверка, как был запущен скрипт
