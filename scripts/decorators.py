@@ -59,3 +59,6 @@ def get_user_data(arugments_list: list) -> None: # Декоратор для п�
         wrapper.__name__ = func.__name__
         return wrapper
     return decorator
+
+if __name__ == '__main__': # Проверка, как был запущен скрипт
+	raise Exception('Нельзя запускать этот скрипт как главный скрипт!')
