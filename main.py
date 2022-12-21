@@ -2,7 +2,6 @@ from scripts.custom_configparser import CustomConfigParser
 import scripts.functions as GlobalFunctions
 from scripts.database import DataBase
 
-from threading import Thread
 import logging
 import shutil
 import sys
@@ -48,20 +47,15 @@ class Main:
 			with open('./data/config.ini', 'w') as config_file:
 				self.config.write(config_file)
 			self.config.read('data/config.ini')
+			
+			print('\nДля того, чтобы вы могли пользоваться Admin Telegram ботом, добавьте себя в список суперпользователей!')
+			self.add_superuser()
 			print()
 
 		print('Запуск Telegram ботов...')
 		for telegram_bot in self.db.get_data(table='TelegramBots', fetchall=True):
-			with open('./data/code_for_start_bots.py', 'r') as code_for_start_bots_file:
-				code_for_start_bots = code_for_start_bots_file.read()
-			code_for_start_bots = telegram_bot[1].capitalize().join(code_for_start_bots.split('Template'))
-			code_for_start_bots = telegram_bot[1].join(code_for_start_bots.split('template'))
-
-			try:
-				exec(code_for_start_bots)
-				print(f'{telegram_bot[1].capitalize()} Telegram бот успешно запущен.')
-			except:
-				print(f'Не удалось запустить {telegram_bot[1].capitalize()} Telegram бота!')
+			result = GlobalFunctions.start_telegram_bot(telegram_bot_name=telegram_bot[1])
+			print(result)
 
 	def add_telegram_bot(self) -> None: # Метод для добавления Telegram ботов
 		telegram_bot_name = input(':: Придумайте имя Telegram боту: ').lower()
@@ -99,7 +93,7 @@ class Main:
 			assert Exception('Вы ввели не число!')
 
 	def add_superuser(self) -> None: # Метод для добавления суперпользователя
-		print('Супер пользователь будет иметь доступ ко всем вашим Telegram ботам.')
+		print('Супер пользователь будет иметь доступ ко всем вашим Telegram ботам!')
 		username = input(':: Введите @ пользователя: ')
 
 		print('\nДобавления суперпользователя...')
@@ -138,9 +132,9 @@ class Main:
 
 	def clear(self) -> None: # Метод для очистки всех созданных файлов
 		print('Очистка...')
-		for file in os.listdir('./data'):
-			if file not in ['code_for_new_bots.py', 'code_for_start_bots.py']:
-				os.remove(f'./data/{file}')
+		for _file in os.listdir('./data'):
+			if _file not in ['code_for_new_bots.py', 'code_for_start_bots.py']:
+				os.remove(f'./data/{_file}')
 		
 		for folder in os.listdir('./telegram_bots'):
 			if folder not in ['admin']:

@@ -1,7 +1,21 @@
+from scripts.telegram_bots import TelegramBots
 from scripts.database import DataBase
 
+from threading import Thread
 import shutil
 import os
+
+def start_telegram_bot(telegram_bot_name: str): # Функция для запуска Telegram бота
+	with open('./data/code_for_start_bots.py', 'r') as code_for_start_bots_file:
+		code_for_start_bots = code_for_start_bots_file.read()
+	code_for_start_bots = telegram_bot_name.capitalize().join(code_for_start_bots.split('Template'))
+	code_for_start_bots = telegram_bot_name.join(code_for_start_bots.split('template'))
+
+	try:
+		exec(code_for_start_bots)
+		return f'{telegram_bot_name.capitalize()} Telegram бот успешно запущен.'
+	except Exception as exception:
+		return f'Не удалось запустить {telegram_bot_name.capitalize()} Telegram бота!\nОшибка: {exception}'
 
 def get_db(func): # Декоратор для получения db аргумента
 	def wrapper(*args, **kwargs):
