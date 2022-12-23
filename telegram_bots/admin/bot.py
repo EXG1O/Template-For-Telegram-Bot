@@ -25,12 +25,12 @@ class AdminTelegramBot:
 			'start_telegram_bot': self.start_telegram_bot, # 1:1
 			'stop_telegram_bot': self.stop_telegram_bot, # 1:2
 			'telegram_bot_settings': self.telegram_bot_settings, # 1:3
-			'edit_telegram_bot_type': self.edit_telegram_bot_type, # 1:1:1
-			'edit_telegram_bot_token': self.edit_telegram_bot_token, # 1:1:2
+			'edit_telegram_bot_type': self.edit_telegram_bot_type, # 1:3:1
+			'edit_telegram_bot_token': self.edit_telegram_bot_token, # 1:3:2
 			'telegram_bot_users': self.telegram_bot_users, # 1:4
-			'give_access_user': self.give_access_user, # 1:2:1
-			'make_superuser': self.make_superuser, # 1:2:2
-			'delete_user': self.delete_user, # 1:2:3
+			'give_access_user': self.give_access_user, # 1:4:1
+			'make_superuser': self.make_superuser, # 1:4:2
+			'delete_user': self.delete_user, # 1:4:3
 			'add_telegram_bot': self.add_telegram_bot, # 1:5
 			'delete_telegram_bot': self.delete_telegram_bot, # 1:6
 			'superusers': self.superusers, # 2
@@ -197,7 +197,7 @@ class AdminTelegramBot:
 
 	@get_user_data(arugments_list=['context', 'chat_id', 'message_id', 'callback_data'])
 	@select_telegram_bot
-	def edit_telegram_bot_type(self, context: telegram.ext.callbackcontext.CallbackContext, chat_id: int, message_id: int, telegram_bot_id: int) -> None: # Метод для кнопки 1:1:1
+	def edit_telegram_bot_type(self, context: telegram.ext.callbackcontext.CallbackContext, chat_id: int, message_id: int, telegram_bot_id: int) -> None: # Метод для кнопки 1:3:1
 		telegram_bot_name: str = self.db.get_data(table='TelegramBots', where=f"id='{telegram_bot_id}'", fetchone=True)[1].capitalize()
 
 		self.config[f'{telegram_bot_name}TelegramBot']['Private'] = '0' if self.config[f'{telegram_bot_name}TelegramBot']['Private'] == '1' else '1'
@@ -211,7 +211,7 @@ class AdminTelegramBot:
 
 	@get_user_data(arugments_list=['context', 'user_id', 'chat_id', 'message_id', 'callback_data'])
 	@select_telegram_bot
-	def edit_telegram_bot_token(self, context: telegram.ext.callbackcontext.CallbackContext, user_id: int, chat_id: int, message_id: int, telegram_bot_id: int) -> None: # Метод для кнопки 1:1:2
+	def edit_telegram_bot_token(self, context: telegram.ext.callbackcontext.CallbackContext, user_id: int, chat_id: int, message_id: int, telegram_bot_id: int) -> None: # Метод для кнопки 1:3:2
 		telegram_bot_name: str = self.db.get_data(table='TelegramBots', where=f"id='{telegram_bot_id}'", fetchone=True)[1].capitalize()
 		
 		self.wait_user_message.update({user_id: f'edit_telegram_bot_token:{message_id}:{telegram_bot_id}'})
@@ -267,7 +267,7 @@ class AdminTelegramBot:
 
 	@get_user_data(arugments_list=['context', 'chat_id', 'message_id', 'callback_data'])
 	@select_telegram_bot_user
-	def give_access_user(self, context: telegram.ext.callbackcontext.CallbackContext, chat_id: int, message_id: int, telegram_bot_id: int, telegram_bot_user_id: int) -> None: # Метод для кнопки 1:2:1
+	def give_access_user(self, context: telegram.ext.callbackcontext.CallbackContext, chat_id: int, message_id: int, telegram_bot_id: int, telegram_bot_user_id: int) -> None: # Метод для кнопки 1:4:1
 		telegram_bot_name: str = self.db.get_data(table='TelegramBots', where=f'id={telegram_bot_id}', fetchone=True)[1].capitalize()
 		user = self.db.get_data(table=f'{telegram_bot_name}TelegramBotUsers', where=f'user_id={telegram_bot_user_id}', fetchone=True)
 
@@ -282,7 +282,7 @@ class AdminTelegramBot:
 
 	@get_user_data(arugments_list=['context', 'chat_id', 'message_id', 'callback_data'])
 	@select_telegram_bot_user
-	def make_superuser(self, context: telegram.ext.callbackcontext.CallbackContext, chat_id: int, message_id: int, telegram_bot_id: int, telegram_bot_user_id: int) -> None: # Метод для кнопки 1:2:2
+	def make_superuser(self, context: telegram.ext.callbackcontext.CallbackContext, chat_id: int, message_id: int, telegram_bot_id: int, telegram_bot_user_id: int) -> None: # Метод для кнопки 1:4:2
 		telegram_bot_name: str = self.db.get_data(table='TelegramBots', where=f'id={telegram_bot_id}', fetchone=True)[1].capitalize()
 		username: str = self.db.get_data(table=f'{telegram_bot_name}TelegramBotUsers', where=f'user_id={telegram_bot_user_id}', fetchone=True)[2]
 
@@ -294,7 +294,7 @@ class AdminTelegramBot:
 
 	@get_user_data(arugments_list=['context', 'chat_id', 'message_id', 'callback_data'])
 	@select_telegram_bot_user
-	def delete_user(self, context: telegram.ext.callbackcontext.CallbackContext, chat_id: int, message_id: int, telegram_bot_id: int, telegram_bot_user_id: int) -> None: # Метод для кнопки 1:2:2
+	def delete_user(self, context: telegram.ext.callbackcontext.CallbackContext, chat_id: int, message_id: int, telegram_bot_id: int, telegram_bot_user_id: int) -> None: # Метод для кнопки 1:4:3
 		telegram_bot_name: str = self.db.get_data(table='TelegramBots', where=f'id={telegram_bot_id}', fetchone=True)[1].capitalize()
 		username: str = self.db.get_data(table=f'{telegram_bot_name}TelegramBotUsers', where=f'user_id={telegram_bot_user_id}', fetchone=True)[2]
 
