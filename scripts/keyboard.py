@@ -28,16 +28,14 @@ class Keyboard:
 					else:
 						buttons_.append(KeyboardButton(text=button['text']))
 					
-					if len(buttons) > 8:
-						if (num) % 8 == 0:
-							self.kb.add(*buttons_)
-							buttons_.clear()
-						elif num == len(buttons):
-							self.kb.add(*buttons_)
-							buttons_.clear()
+					if len(buttons) > 8 and num == len(buttons):
+						self.kb.add(*buttons_)
+						buttons_.clear()
 					else:
 						self.kb.add(*buttons_)
 						buttons_.clear()
+
+					num += 1
 			else:
 				raise Exception('Аргумент "buttons" пустой!')
 		else:

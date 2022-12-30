@@ -1,4 +1,4 @@
-from scripts.telegram_bots import TelegramBots
+from scripts.variables import Variables
 from scripts.database import DataBase
 
 from threading import Thread

@@ -13,11 +13,7 @@ class SingletonMeta(type):
 				cls._instances[cls] = instance
 		return cls._instances[cls]
 
-# Класс CustomConfigParser
-class CustomConfigParser(metaclass=SingletonMeta):
-	config_readed = False
-
-	def __init__(self) -> None:
-		self.config = ConfigParser()
-		if self.config_readed == False:
-			self.config.read('./data/config.ini')
+# Класс Variables
+class Variables(metaclass=SingletonMeta):
+	config = ConfigParser()
+	telegram_bots = {}

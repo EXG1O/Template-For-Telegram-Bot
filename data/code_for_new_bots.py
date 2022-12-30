@@ -2,15 +2,15 @@ from telegram.ext import Updater, MessageHandler, CommandHandler, Filters, Callb
 import telegram.ext
 import telegram
 
-from scripts.custom_configparser import CustomConfigParser
 from scripts.decorators import check_user, get_user_data
+from scripts.variables import Variables
 from scripts.keyboard import Keyboard
 from scripts.database import DataBase
 
 # Класс TemplateTelegramBot
 class TemplateTelegramBot:
 	def __init__(self, telegram_bot_name: str) -> None: # Инициализация класса TemplateTelegramBot
-		self.config = CustomConfigParser().config
+		self.config = Variables().config
 		self.db = DataBase()
 
 		self.telegram_bot_name = telegram_bot_name
