@@ -18,8 +18,8 @@ class Main:
 			self.config.read('./data/config.ini')
 
 			self.db = DataBase()
-			self.db.create_table(table='TelegramBots', values='id INT NOT NULL, name TEXT PRIMARY KEY NOT NULL')
-			self.db.create_table(table='Superusers', values='id INT NOT NULL, username TEXT PRIMARY KEY NOT NULL')
+			self.db.create_table(table='TelegramBots', values='id INT UNIQUE NOT NULL, name TEXT PRIMARY KEY NOT NULL')
+			self.db.create_table(table='Superusers', values='id INT PRIMARY KEY NOT NULL, username TEXT UNIQUE NOT NULL')
 			if self.db.get_data(table='TelegramBots', where="name='admin'", fetchone=True) == None:
 				self.db.insert_into(table='TelegramBots', values=(1, 'admin'))
 				self.db.create_table(table='AdminTelegramBotUsers', values="""
@@ -61,7 +61,7 @@ class Main:
 
 	@pre_setup
 	def add_telegram_bot(self) -> None: # Метод для добавления Telegram ботов
-		telegram_bot_name = input(':: Придумайте имя Telegram боту: ').lower()
+		telegram_bot_name = input(':: Придумайте имя Telegram боту: ')
 		telegram_bot_token = input (':: Введите Token Telegram бота: ')
 
 		print('\nДобавления Telegram бота...')
