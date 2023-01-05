@@ -26,6 +26,22 @@ def get_db(func): # Декоратор для получения db аргуме
 
 @get_db
 def add_telegram_bot(db: DataBase, telegram_bot_name: str, telegram_bot_token: str) -> str: # Функция для добавления Telegram ботов
+	telegram_bot_name = '_'.join(telegram_bot_name.lower().split())
+
+	NOT_ALLOWED_SYMBOLS = [
+		'`', '~', '!', '@', '#', '$',
+		'%', '^', '&', '*', '(', ')',
+		'-', '–', '—', '=', '+', '[',
+		']', '{', '}', ';', ':', "'",
+		'"', ',', '.', '/', '<', '>',
+		'?', '|', '§', '°'
+	]
+	allowed_telegram_bot_name = ''
+	for symbol in telegram_bot_name:
+		if symbol not in NOT_ALLOWED_SYMBOLS:
+			allowed_telegram_bot_name += symbol
+	telegram_bot_name = allowed_telegram_bot_name
+	
 	if db.get_data(table='TelegramBots', where=f"name='{telegram_bot_name}'", fetchone=True) == None:
 		with open('./data/config.ini', 'a') as config_file:
 			config_file.write(f'[{telegram_bot_name.capitalize()}TelegramBot]\nPrivate=1\nToken={telegram_bot_token}\n\n')
@@ -47,7 +63,7 @@ def add_telegram_bot(db: DataBase, telegram_bot_name: str, telegram_bot_token: s
 		with open(f'./telegram_bots/{telegram_bot_name}/bot.py', 'w') as bot_file:
 			bot_file.write(code_for_new_bots)
 
-		return 'Вы успешно добавили Telegram бота.'
+		return f'Вы успешно добавили {telegram_bot_name} Telegram бота.'
 	else:
 		return 'Telegram бот с таким именем уже создан!'
 

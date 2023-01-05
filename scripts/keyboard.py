@@ -6,9 +6,9 @@ class Keyboard:
 		self.inline = inline
 
 		if self.inline:
-			self.kb = InlineKeyboardMarkup()
+			self.kb = InlineKeyboardMarkup(row_width=4)
 		else:
-			self.kb = ReplyKeyboardMarkup()
+			self.kb = ReplyKeyboardMarkup(row_width=4)
 	
 	def add_button(self, buttons: list): # Метод добавление кнопок в клавиатуру Telegram бота
 		"""
@@ -16,26 +16,19 @@ class Keyboard:
 		buttons = [{'text': 'Привет'}, {'text': 'Пока'}]
 
 		### ReplyKeyboardMarkup
-		buttons = [{'text': 'Привет', 'callback_data': 'Hello'}, {'text': 'Пока', 'callback_data': 'Bye'}]
+		buttons = [{'text': 'Привет', 'callback_data': 'hello'}, {'text': 'Пока', 'callback_data': 'bye'}]
 		"""
 
 		if type(buttons) == list:
 			if buttons != []:
-				buttons_, num = [], 1
+				buttons_ = []
 				for button in buttons:
 					if self.inline:
 						buttons_.append(InlineKeyboardButton(text=button['text'], callback_data=button['callback_data']))
 					else:
 						buttons_.append(KeyboardButton(text=button['text']))
-					
-					if len(buttons) > 8 and num == len(buttons):
-						self.kb.add(*buttons_)
-						buttons_.clear()
-					else:
-						self.kb.add(*buttons_)
-						buttons_.clear()
 
-					num += 1
+				self.kb.add(*buttons_)
 			else:
 				raise Exception('Аргумент "buttons" пустой!')
 		else:

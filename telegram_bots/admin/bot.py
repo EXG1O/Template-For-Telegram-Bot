@@ -40,18 +40,8 @@ class AdminTelegramBot:
 		}
 
 		self.admin_menu_kb = Keyboard(inline=True)
-		self.admin_menu_kb.add_button(
-			[
-				{
-					'text': 'Список Telegram ботов',
-					'callback_data': 'telegram_bots'
-				},
-				{
-					'text': 'Суперпользователи',
-					'callback_data': 'superusers'
-				}
-			]
-		)
+		self.admin_menu_kb.add_button([{'text': 'Список ваших Telegram ботов', 'callback_data': 'telegram_bots'}])
+		self.admin_menu_kb.add_button([{'text': 'Суперпользователи', 'callback_data': 'superusers'}])
 
 		self.back_to_telegram_bots_kb = Keyboard(inline=True)
 		self.back_to_telegram_bots_kb.add_button([{'text': 'Вернуться', 'callback_data': 'telegram_bots'}])
@@ -94,7 +84,7 @@ class AdminTelegramBot:
 					edit_telegram_bot_token_kb.add_button([{'text': 'Вернуться', 'callback_data': f'telegram_bot_settings:{telegram_bot_id}'}])
 					context.bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=f'Теперь токен {telegram_bot_name} Telegram бота: <i>{message}</i>\n<b>Чтобы изменения вступили в силу, перезапустите файл main.py!</b>', parse_mode='HTML', reply_markup=edit_telegram_bot_token_kb.get_keyboard())
 				case 'add_telegram_bot':
-					telegram_bot_name: str = data[2].lower()
+					telegram_bot_name: str = data[2]
 
 					context.bot.delete_message(chat_id=chat_id, message_id=update.effective_message.message_id)
 					if telegram_bot_name == 'None':
@@ -128,38 +118,13 @@ class AdminTelegramBot:
 			num += 1
 		
 		telegram_bots_kb = Keyboard(inline=True)
-		telegram_bots_kb.add_button(
-			[
-				{
-					'text': 'Запустить Telegram бота',
-					'callback_data': 'start_telegram_bot'
-				},
-				{
-					'text': 'Остановить Telegram бота',
-					'callback_data': 'stop_telegram_bot'
-				},
-				{
-					'text': 'Настройки Telegram бота',
-					'callback_data': 'telegram_bot_settings'
-				},
-				{
-					'text': 'Список пользователей Telegram бота',
-					'callback_data': 'telegram_bot_users'
-				},
-				{
-					'text': 'Добавить Telegram бота',
-					'callback_data': 'add_telegram_bot'
-				},
-				{
-					'text': 'Удалить Telegram бота',
-					'callback_data': 'delete_telegram_bot'
-				},
-				{
-					'text': 'Вернуться',
-					'callback_data': 'back_to_admin_menu'
-				}
-			]
-		)
+		telegram_bots_kb.add_button([{'text': 'Запустить Telegram бота', 'callback_data': 'start_telegram_bot'}])
+		telegram_bots_kb.add_button([{'text': 'Остановить Telegram бота', 'callback_data': 'stop_telegram_bot'}])
+		telegram_bots_kb.add_button([{'text': 'Настройки Telegram бота', 'callback_data': 'telegram_bot_settings'}])
+		telegram_bots_kb.add_button([{'text': 'Список пользователей Telegram бота', 'callback_data': 'telegram_bot_users'}])
+		telegram_bots_kb.add_button([{'text': 'Добавить Telegram бота', 'callback_data': 'add_telegram_bot'}])
+		telegram_bots_kb.add_button([{'text': 'Удалить Telegram бота', 'callback_data': 'delete_telegram_bot'}])
+		telegram_bots_kb.add_button([{'text': 'Вернуться', 'callback_data': 'back_to_admin_menu'}])
 		context.bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=message, parse_mode='HTML', reply_markup=telegram_bots_kb.get_keyboard())
 
 	def select_telegram_bot(func) -> None: # Декоратор для получения ID Telegram бота, который выберет пользователь
@@ -223,22 +188,9 @@ class AdminTelegramBot:
 		""".replace('	', '')
 
 		telegram_bot_settings_kb = Keyboard(inline=True)
-		telegram_bot_settings_kb.add_button(
-			[
-				{
-					'text': 'Изменить тип Telegram бота',
-					'callback_data': f'edit_telegram_bot_type:{telegram_bot_id}'
-				},
-				{
-					'text': 'Изменить токен Telegram бота',
-					'callback_data': f'edit_telegram_bot_token:{telegram_bot_id}'
-				},
-				{
-					'text': 'Вернуться',
-					'callback_data': 'telegram_bots'
-				}
-			]
-		)
+		telegram_bot_settings_kb.add_button([{'text': 'Изменить тип Telegram бота', 'callback_data': f'edit_telegram_bot_type:{telegram_bot_id}'}])
+		telegram_bot_settings_kb.add_button([{'text': 'Изменить токен Telegram бота', 'callback_data': f'edit_telegram_bot_token:{telegram_bot_id}'}])
+		telegram_bot_settings_kb.add_button([{'text': 'Вернуться', 'callback_data': 'telegram_bots'}])
 		context.bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=message, parse_mode='HTML', reply_markup=telegram_bot_settings_kb.get_keyboard())
 
 	@get_user_data(arugments_list=['context', 'chat_id', 'message_id', 'callback_data'])
@@ -283,22 +235,9 @@ class AdminTelegramBot:
 		if message == '':
 			message = f'<b>Вашего {telegram_bot_name} Telegram бота ещё никто не активировал!</b>'
 		else:
-			telegram_bot_users_kb.add_button(
-				[
-					{
-						'text': 'Выдать доступ к боту',
-						'callback_data': f'give_access_user:{telegram_bot_id}:None'
-					},
-					{
-						'text': 'Сделать суперпользователем',
-						'callback_data': f'make_superuser:{telegram_bot_id}:None'
-					},
-					{
-						'text': 'Удалить пользователя',
-						'callback_data': f'delete_user:{telegram_bot_id}:None'
-					}
-				]
-			)
+			telegram_bot_users_kb.add_button([{'text': 'Выдать доступ к боту', 'callback_data': f'give_access_user:{telegram_bot_id}:None'}])
+			telegram_bot_users_kb.add_button([{'text': 'Сделать суперпользователем', 'callback_data': f'make_superuser:{telegram_bot_id}:None'}])
+			telegram_bot_users_kb.add_button([{'text': 'Удалить пользователя', 'callback_data': f'delete_user:{telegram_bot_id}:None'}])
 		telegram_bot_users_kb.add_button([{'text': 'Вернуться', 'callback_data': 'telegram_bots'}])
 		context.bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=message, parse_mode='HTML', reply_markup=telegram_bot_users_kb.get_keyboard())
 
