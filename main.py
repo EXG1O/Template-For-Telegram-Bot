@@ -185,4 +185,4 @@ if __name__ == '__main__': # Проверка, как был запущен ск
 		else:
 			raise Exception('Команда не найдена!')
 	else:
-		raise Exception('Вы не указали команду!')
+		raise Exception('Вы не ввели команду!')

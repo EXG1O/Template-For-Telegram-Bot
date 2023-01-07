@@ -6,13 +6,13 @@ import shutil
 import os
 
 def start_telegram_bot(telegram_bot_name: str): # Функция для запуска Telegram бота
-	with open('./data/code_for_start_bots.py', 'r') as code_for_start_bots_file:
-		code_for_start_bots = code_for_start_bots_file.read()
-	code_for_start_bots = telegram_bot_name.capitalize().join(code_for_start_bots.split('Template'))
-	code_for_start_bots = telegram_bot_name.join(code_for_start_bots.split('template'))
+	with open('./data/code_for_start_bot.py', 'r') as code_for_start_bot_file:
+		code_for_start_bot = code_for_start_bot_file.read()
+	code_for_start_bot = telegram_bot_name.capitalize().join(code_for_start_bot.split('Template'))
+	code_for_start_bot = telegram_bot_name.join(code_for_start_bot.split('template'))
 
 	try:
-		exec(code_for_start_bots)
+		exec(code_for_start_bot)
 		return f'{telegram_bot_name.capitalize()} Telegram бот успешно запущен.'
 	except Exception as exception:
 		return f'Не удалось запустить {telegram_bot_name.capitalize()} Telegram бота!\nОшибка: {exception}'
@@ -57,11 +57,11 @@ def add_telegram_bot(db: DataBase, telegram_bot_name: str, telegram_bot_token: s
 		db.create_table(table=f'{telegram_bot_name.capitalize()}TelegramBotUsers', values=values)
 
 		os.mkdir(f'./telegram_bots/{telegram_bot_name}')
-		with open('./data/code_for_new_bots.py', 'r') as code_for_new_bots_file:
-			code_for_new_bots = code_for_new_bots_file.read()
-		code_for_new_bots = telegram_bot_name.capitalize().join(code_for_new_bots.split('Template'))
+		with open('./data/code_for_new_bot.py', 'r') as code_for_new_bot_file:
+			code_for_new_bot = code_for_new_bot_file.read()
+		code_for_new_bot = telegram_bot_name.capitalize().join(code_for_new_bot.split('Template'))
 		with open(f'./telegram_bots/{telegram_bot_name}/bot.py', 'w') as bot_file:
-			bot_file.write(code_for_new_bots)
+			bot_file.write(code_for_new_bot)
 
 		return f'Вы успешно добавили {telegram_bot_name} Telegram бота.'
 	else:
