@@ -1,4 +1,3 @@
-from configparser import ConfigParser
 from threading import Lock
 
 # Многопоточный Singleton
@@ -15,5 +14,5 @@ class SingletonMeta(type):
 
 # Класс Variables
 class Variables(metaclass=SingletonMeta):
-	config = ConfigParser()
 	telegram_bots = {}
+	unique_key = ''

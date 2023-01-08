@@ -2,6 +2,7 @@ from scripts.variables import Variables
 from scripts.database import DataBase
 
 from threading import Thread
+import cryptocode
 import shutil
 import os
 
@@ -43,10 +44,7 @@ def add_telegram_bot(db: DataBase, telegram_bot_name: str, telegram_bot_token: s
 	telegram_bot_name = allowed_telegram_bot_name
 	
 	if db.get_data(table='TelegramBots', where=f"name='{telegram_bot_name}'", fetchone=True) == None:
-		with open('./data/config.ini', 'a') as config_file:
-			config_file.write(f'[{telegram_bot_name.capitalize()}TelegramBot]\nPrivate=1\nToken={telegram_bot_token}\n\n')
-
-		db.insert_into(table='TelegramBots', values=(len(db.get_data(table='TelegramBots', fetchall=True)) + 1, telegram_bot_name))
+		db.insert_into(table='TelegramBots', values=(len(db.get_data(table='TelegramBots', fetchall=True)) + 1, telegram_bot_name, cryptocode.encrypt(telegram_bot_token, Variables.unique_key), 1))
 		values = """
 			user_id INT PRIMARY KEY NOT NULL,
 			chat_id INT NOT NULL,
@@ -74,25 +72,7 @@ def delete_telegram_bot(db: DataBase, telegram_bot_id: int) -> str | tuple: # Ф
 	if telegram_bot_name != 'admin':
 		db.delete_record(table='TelegramBots', where=f"id='{telegram_bot_id}'")
 		shutil.rmtree(f'./telegram_bots/{telegram_bot_name}')
-
 		db.drop_table(table=f'{telegram_bot_name.capitalize()}TelegramBotUsers')
-
-		with open('./data/config.ini', 'r') as config_file:
-			config_str = config_file.read()
-			lines = config_str.split('\n')
-
-		num = 0
-		for line in lines:
-			if line == f'[{telegram_bot_name.capitalize()}TelegramBot]':
-				break
-			num += 1
-
-		for i in range(4):
-			del lines[num]
-		config_str = '\n'.join(lines)
-
-		with open('./data/config.ini', 'w') as config_file:
-			config_file.write(config_str)
 
 		return f'Вы успешно удалили {telegram_bot_name.capitalize()} Telegram бота.'
 	else:

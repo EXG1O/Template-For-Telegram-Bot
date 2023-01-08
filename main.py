@@ -2,6 +2,9 @@ import scripts.functions as GlobalFunctions
 from scripts.variables import Variables
 from scripts.database import DataBase
 
+import cryptocode
+import random
+
 import logging
 import shutil
 import sys
@@ -9,30 +12,56 @@ import os
 
 # Класс Main
 class Main:
-	def pre_setup(func) -> None: # Декоратор для предварительной настройки
-		def wrapper(self):
-			self.config = Variables().config
-			if 'config.ini' not in os.listdir('./data'):
-				with open('./data/config.ini', 'w') as config_file:
-					config_file.write('[AdminTelegramBot]\nPrivate=1\nToken=None\n')
-			self.config.read('./data/config.ini')
+	def __init__(self) -> None: # Инициализация класса Main
+		self.db = DataBase()
+		
+		if 'unique.key' not in os.listdir('./data'):
+			print(
+				"""\
+					Так как фреймворк был запущен впервые, создаём рандомный уникальный ключ для шифрования важных данных.
+					Уникальный ключ будет в файле ./data/unique.key!
+				
+					Создания уникального ключа...""".replace('	', '')
+			)
+			
+			unique_key =''
+			for i in range(100):
+				unique_key += random.choice('+-/*!&$#?=@<>abcdefghijklnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890')
+			
+			with open('./data/unique.key', 'w') as unique_key_file:
+				unique_key_file.write(unique_key)
 
-			self.db = DataBase()
-			self.db.create_table(table='TelegramBots', values='id INT UNIQUE NOT NULL, name TEXT PRIMARY KEY NOT NULL')
-			self.db.create_table(table='Superusers', values='id INT PRIMARY KEY NOT NULL, username TEXT UNIQUE NOT NULL')
-			if self.db.get_data(table='TelegramBots', where="name='admin'", fetchone=True) == None:
-				self.db.insert_into(table='TelegramBots', values=(1, 'admin'))
-				self.db.create_table(table='AdminTelegramBotUsers', values="""
-					user_id INT PRIMARY KEY NOT NULL,
-					chat_id INT NOT NULL,
-					username TEXT NOT NULL,
-					reg_date TEXT NOT NULL,
-					allowed_user INT NOT NULL
-				""")
+			Variables.unique_key = unique_key
 
-			func(self)
-		wrapper.__name__ = func.__name__
-		return wrapper
+			print(
+				f"""\
+					Успешное создание уникального ключа.
+					Уникальный ключ: {unique_key}
+				""".replace('	', '')
+			)
+		else:
+			with open('./data/unique.key', 'r') as unique_key_file:
+				Variables.unique_key = unique_key_file.read()
+		
+		self.db.create_table(table='TelegramBots', values="""
+			id INT UNIQUE NOT NULL,
+			name TEXT PRIMARY KEY NOT NULL,
+			token TEXT UNIQUE NOT NULL,
+			private INT NOT NULL
+		""")
+		self.db.create_table(table='Superusers', values="""
+			id INT PRIMARY KEY NOT NULL,
+			username TEXT UNIQUE NOT NULL
+		""")
+		if self.db.get_data(table='TelegramBots', where="name='admin'", fetchone=True) == None:
+			self.db.insert_into(table='TelegramBots', values=(1, 'admin', 'None', 1))
+			self.db.create_table(table='AdminTelegramBotUsers', values="""
+				user_id INT PRIMARY KEY NOT NULL,
+				chat_id INT NOT NULL,
+				username TEXT NOT NULL,
+				reg_date TEXT NOT NULL,
+				allowed_user INT NOT NULL
+			""")
 
 	def help(self) -> None: # Метод для вывода всех команд
 		commands_list, num = '', 1
@@ -41,13 +70,11 @@ class Main:
 			num += 1
 		print(f'Список команд:{commands_list}')
 
-	@pre_setup
 	def start_telegram_bots(self) -> None: # Метод для запуска Telegram ботов
-		if self.config['AdminTelegramBot']['Token'] == 'None':
-			self.config['AdminTelegramBot']['Token'] = input(':: Введите токен Admin Telegram бота: ')
-			with open('./data/config.ini', 'w') as config_file:
-				self.config.write(config_file)
-			self.config.read('data/config.ini')
+		if self.db.get_data(table='TelegramBots', where="name='admin'", fetchone=True)[2] == 'None':
+			admin_telegram_bot_token = input(':: Введите токен Admin Telegram бота: ')
+			admin_telegram_bot_token_encoded = cryptocode.encrypt(admin_telegram_bot_token, Variables.unique_key)
+			self.db.edit_value(table='TelegramBots', value=f"token='{admin_telegram_bot_token_encoded}'", where="name='admin'")
 			
 			print('\nДля того, чтобы вы могли пользоваться Admin Telegram ботом, добавьте себя в список суперпользователей!')
 			self.add_superuser()
@@ -59,7 +86,6 @@ class Main:
 			result = GlobalFunctions.start_telegram_bot(telegram_bot_name=telegram_bot[1])
 			print(result)
 
-	@pre_setup
 	def add_telegram_bot(self) -> None: # Метод для добавления Telegram ботов
 		telegram_bot_name = input(':: Придумайте имя Telegram боту: ')
 		telegram_bot_token = input (':: Введите Token Telegram бота: ')
@@ -68,7 +94,6 @@ class Main:
 		result = GlobalFunctions.add_telegram_bot(telegram_bot_name=telegram_bot_name, telegram_bot_token=telegram_bot_token)
 		print(result)
 
-	@pre_setup
 	def delete_telegram_bot(self) -> None: # Метод для удаления Telegram бота
 		telegram_bots: list = self.db.get_data('TelegramBots', fetchall=True)
 		
@@ -96,7 +121,6 @@ class Main:
 		else:
 			assert Exception('Вы ввели не число!')
 
-	@pre_setup
 	def add_superuser(self) -> None: # Метод для добавления суперпользователя
 		print('Супер пользователь будет иметь доступ ко всем вашим Telegram ботам!')
 		username = input(':: Введите @ пользователя: ')
@@ -105,7 +129,6 @@ class Main:
 		result = GlobalFunctions.add_superuser(username=username)
 		print(result)
 
-	@pre_setup
 	def delete_superuser(self) -> None: # Метод для удаления суперпользователя
 		superusers: list = self.db.get_data('Superusers', fetchall=True)
 		
@@ -139,7 +162,7 @@ class Main:
 	def clear(self) -> None: # Метод для очистки всех созданных файлов
 		print('Очистка...')
 		for _file in os.listdir('./data'):
-			if _file in ['.log', 'config.ini', 'DataBase.db']:
+			if _file in ['.log', 'DataBase.db']:
 				os.remove(f'./data/{_file}')
 		
 		for folder in os.listdir('./telegram_bots'):

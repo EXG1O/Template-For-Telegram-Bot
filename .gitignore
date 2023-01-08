@@ -4,5 +4,5 @@ env/
 
 # Файлы
 DataBase.db
-config.ini
+unique.key
 .log

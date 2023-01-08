@@ -7,10 +7,11 @@ from scripts.variables import Variables
 from scripts.keyboard import Keyboard
 from scripts.database import DataBase
 
+import cryptocode
+
 # Класс TemplateTelegramBot
 class TemplateTelegramBot:
 	def __init__(self, telegram_bot_name: str) -> None: # Инициализация класса TemplateTelegramBot
-		self.config = Variables().config
 		self.db = DataBase()
 
 		self.telegram_bot_name = telegram_bot_name
@@ -46,7 +47,9 @@ class TemplateTelegramBot:
 		context.bot.edit_message_text(chat_id=chat_id, message_id=message_id, text='Hello Word!')
 
 	def start(self) -> None: # Метод для запуска Telegram бота
-		self.updater = Updater(token=self.config['TemplateTelegramBot']['Token'])
+		telegram_bot_token: str = self.db.get_data(table='TelegramBots', where=f"name='{self.telegram_bot_name.lower()}'", fetchone=True)[2]
+
+		self.updater = Updater(token=cryptocode.decrypt(telegram_bot_token, Variables.unique_key))
 		self.dispatcher = self.updater.dispatcher
 
 		self.dispatcher.add_handler(CallbackQueryHandler(self.handle_callback_query))

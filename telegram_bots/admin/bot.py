@@ -8,10 +8,11 @@ from scripts.variables import Variables
 from scripts.keyboard import Keyboard
 from scripts.database import DataBase
 
+import cryptocode
+
 # Класс AdminTelegramBot
 class AdminTelegramBot:
 	def __init__(self, telegram_bot_name: str) -> None: # Инициализация класса AdminTelegramBot
-		self.config = Variables().config
 		self.db = DataBase()
 
 		self.telegram_bot_name = telegram_bot_name
@@ -72,10 +73,8 @@ class AdminTelegramBot:
 					telegram_bot_id: int = int(data[2])
 					telegram_bot_name: str = self.db.get_data(table='TelegramBots', where=f"id='{telegram_bot_id}'", fetchone=True)[1].capitalize()
 
-					self.config[f'{telegram_bot_name}TelegramBot']['Token'] = message
-					with open('./data/config.ini', 'w') as config_file:
-						self.config.write(config_file)
-					self.config.read('data/config.ini')
+					telegram_bot_token_encoded = cryptocode.encrypt(message, Variables.unique_key)
+					self.db.edit_value(table='TelegramBots', value=f"token='{telegram_bot_token_encoded}'", where=f"id='{telegram_bot_id}'")
 
 					context.bot.delete_message(chat_id=chat_id, message_id=update.effective_message.message_id)
 					del self.wait_user_message[user_id]
@@ -95,8 +94,6 @@ class AdminTelegramBot:
 						del self.wait_user_message[user_id]
 
 						result: str = GlobalFunctions.add_telegram_bot(telegram_bot_name=telegram_bot_name, telegram_bot_token=message)
-						self.config.read('data/config.ini')
-
 						context.bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=result, reply_markup=self.back_to_telegram_bots_kb.get_keyboard())
 				case 'add_superuser':
 					context.bot.delete_message(chat_id=chat_id, message_id=update.effective_message.message_id)
@@ -167,24 +164,28 @@ class AdminTelegramBot:
 	def stop_telegram_bot(self, context: telegram.ext.callbackcontext.CallbackContext, chat_id: int, message_id: int, telegram_bot_id: int) -> None: # Метод для кнопки 1:2
 		telegram_bot_name: str = self.db.get_data(table='TelegramBots', where=f"id='{telegram_bot_id}'", fetchone=True)[1]
 
-		telegram_bots = Variables().telegram_bots 
-		if telegram_bot_name in telegram_bots:
-			context.bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=f'{telegram_bot_name.capitalize()} Telegram бот успешно остановлен.', parse_mode='HTML', reply_markup=self.back_to_telegram_bots_kb.get_keyboard())
+		if telegram_bot_name != 'admin':
+			telegram_bots = Variables().telegram_bots 
+			if telegram_bot_name in telegram_bots:
+				context.bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=f'{telegram_bot_name.capitalize()} Telegram бот успешно остановлен.', parse_mode='HTML', reply_markup=self.back_to_telegram_bots_kb.get_keyboard())
 
-			telegram_bot = telegram_bots[telegram_bot_name]
-			del telegram_bots[telegram_bot_name]
-			telegram_bot.stop()
+				telegram_bot = telegram_bots[telegram_bot_name]
+				del telegram_bots[telegram_bot_name]
+				telegram_bot.stop()
+			else:
+				context.bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=f'{telegram_bot_name.capitalize()} Telegram бот уже остановлен!', parse_mode='HTML', reply_markup=self.back_to_telegram_bots_kb.get_keyboard())
 		else:
-			context.bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=f'{telegram_bot_name.capitalize()} Telegram бот уже остановлен!', parse_mode='HTML', reply_markup=self.back_to_telegram_bots_kb.get_keyboard())
+			context.bot.edit_message_text(chat_id=chat_id, message_id=message_id, text='Нельзя остановить Admin Telegram бота!', parse_mode='HTML', reply_markup=self.back_to_telegram_bots_kb.get_keyboard())
 
 	@get_user_data(arugments_list=['context', 'chat_id', 'message_id', 'callback_data'])
 	@select_telegram_bot
 	def telegram_bot_settings(self, context: telegram.ext.callbackcontext.CallbackContext, chat_id: int, message_id: int, telegram_bot_id: int) -> None: # Метод для кнопки 1:3
-		telegram_bot_name: str = self.db.get_data(table='TelegramBots', where=f"id='{telegram_bot_id}'", fetchone=True)[1].capitalize()
+		telegram_bot: tuple = self.db.get_data(table='TelegramBots', where=f"id='{telegram_bot_id}'", fetchone=True)
+		telegram_bot_roken: str = cryptocode.decrypt(telegram_bot[2], Variables.unique_key)
 
 		message = f"""\
-			<b>Тип:</b> <i>{'Приватный' if self.config[f'{telegram_bot_name}TelegramBot']['Private'] == '1' else 'Не приватный'}</i>
-			<b>Токен:</b> <i>{self.config[f'{telegram_bot_name}TelegramBot']['Token']}</i>
+			<b>Тип:</b> <i>{'Приватный' if telegram_bot[3] == 1 else 'Не приватный'}</i>
+			<b>Токен:</b> <i>{telegram_bot_roken}</i>
 		""".replace('	', '')
 
 		telegram_bot_settings_kb = Keyboard(inline=True)
@@ -196,16 +197,13 @@ class AdminTelegramBot:
 	@get_user_data(arugments_list=['context', 'chat_id', 'message_id', 'callback_data'])
 	@select_telegram_bot
 	def edit_telegram_bot_type(self, context: telegram.ext.callbackcontext.CallbackContext, chat_id: int, message_id: int, telegram_bot_id: int) -> None: # Метод для кнопки 1:3:1
-		telegram_bot_name: str = self.db.get_data(table='TelegramBots', where=f"id='{telegram_bot_id}'", fetchone=True)[1].capitalize()
+		telegram_bot: tuple = self.db.get_data(table='TelegramBots', where=f"id='{telegram_bot_id}'", fetchone=True)
 
-		self.config[f'{telegram_bot_name}TelegramBot']['Private'] = '0' if self.config[f'{telegram_bot_name}TelegramBot']['Private'] == '1' else '1'
-		with open('./data/config.ini', 'w') as config_file:
-			self.config.write(config_file)
-		self.config.read('data/config.ini')
+		self.db.edit_value(table='TelegramBots', value=f"private='{0 if telegram_bot[3] == 1 else 1}'", where=f"id='{telegram_bot_id}'")
 
 		edit_telegram_bot_type_kb = Keyboard(inline=True)
 		edit_telegram_bot_type_kb.add_button([{'text': 'Вернуться', 'callback_data': f'telegram_bot_settings:{telegram_bot_id}'}])
-		context.bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=f"Теперь {telegram_bot_name} Telegram бот {'приватный' if self.config[f'{telegram_bot_name}TelegramBot']['Private'] == '1' else 'не приватный'}.", parse_mode='HTML', reply_markup=edit_telegram_bot_type_kb.get_keyboard())
+		context.bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=f"Теперь {telegram_bot[1].capitalize()} Telegram бот {'не приватный' if telegram_bot[3] == 1 else 'приватный'}.", parse_mode='HTML', reply_markup=edit_telegram_bot_type_kb.get_keyboard())
 
 	@get_user_data(arugments_list=['context', 'user_id', 'chat_id', 'message_id', 'callback_data'])
 	@select_telegram_bot
@@ -218,7 +216,8 @@ class AdminTelegramBot:
 	@get_user_data(arugments_list=['context', 'chat_id', 'message_id', 'callback_data'])
 	@select_telegram_bot
 	def telegram_bot_users(self, context: telegram.ext.callbackcontext.CallbackContext, chat_id: int, message_id: int, telegram_bot_id: int) -> None: # Метод для кнопки 1:4
-		telegram_bot_name: str = self.db.get_data(table='TelegramBots', where=f"id='{telegram_bot_id}'", fetchone=True)[1].capitalize()
+		telegram_bot: tuple = self.db.get_data(table='TelegramBots', where=f"id='{telegram_bot_id}'", fetchone=True)
+		telegram_bot_name: str = telegram_bot[1].capitalize()
 		users: list = self.db.get_data(table=f'{telegram_bot_name}TelegramBotUsers', fetchall=True)
 
 		message = ''
@@ -228,7 +227,7 @@ class AdminTelegramBot:
 				ID пользователя: {user[0]}
 				ID чата: {user[1]}
 				Дата активации бота: {user[3]}
-				Пользователь {'не' if user[4] == 0 and self.config['AdminTelegramBot']['Private'] == '1' and self.db.get_data(table='Superusers', where=f"username='{user[2]}'", fetchone=True) == None else ''}имеет доступ к боту.
+				Пользователь {'не' if user[4] == 0 and telegram_bot[3] == 1 and self.db.get_data(table='Superusers', where=f"username='{user[2]}'", fetchone=True) == None else ''}имеет доступ к боту.
 			""".replace('	', '')
 
 		telegram_bot_users_kb = Keyboard(inline=True)
@@ -384,7 +383,9 @@ class AdminTelegramBot:
 		context.bot.edit_message_text(chat_id=chat_id, message_id=message_id, text='🔐 <b>Админ меню</b> 🔐', parse_mode='HTML', reply_markup=self.admin_menu_kb.get_keyboard())
 
 	def start(self) -> None: # Метод для запуска Telegram бота
-		self.updater = Updater(token=self.config['AdminTelegramBot']['Token'])
+		telegram_bot_token: str = self.db.get_data(table='TelegramBots', where=f"name='admin'", fetchone=True)[2]
+
+		self.updater = Updater(token=cryptocode.decrypt(telegram_bot_token, Variables.unique_key))
 		self.dispatcher = self.updater.dispatcher
 
 		self.dispatcher.add_handler(CallbackQueryHandler(self.handle_callback_query))
