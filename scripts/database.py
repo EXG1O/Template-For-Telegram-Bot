@@ -60,9 +60,9 @@ class DataBase(metaclass=SingletonMeta):
 	@lock_and_unlock_theards
 	def edit_value(self, table: str, value: str, where: str | None = None) -> None: # Метод для редактирования значений записей в таблицах базы данных
 		if where == None:
-			self.sql.execute(f"UPDATE {value} FROM {table}")
+			self.sql.execute(f"UPDATE {table} SET {value}")
 		else:
-			self.sql.execute(f"UPDATE {value} FROM {table} WHERE {where}")
+			self.sql.execute(f"UPDATE {table} SET {value} WHERE {where}")
 		self.db.commit()
 
 	@lock_and_unlock_theards

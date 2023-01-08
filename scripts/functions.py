@@ -2,17 +2,18 @@ from scripts.variables import Variables
 from scripts.database import DataBase
 
 from threading import Thread
+import cryptocode
 import shutil
 import os
 
 def start_telegram_bot(telegram_bot_name: str): # Функция для запуска Telegram бота
-	with open('./data/code_for_start_bots.py', 'r') as code_for_start_bots_file:
-		code_for_start_bots = code_for_start_bots_file.read()
-	code_for_start_bots = telegram_bot_name.capitalize().join(code_for_start_bots.split('Template'))
-	code_for_start_bots = telegram_bot_name.join(code_for_start_bots.split('template'))
+	with open('./data/code_for_start_bot.py', 'r') as code_for_start_bot_file:
+		code_for_start_bot = code_for_start_bot_file.read()
+	code_for_start_bot = telegram_bot_name.capitalize().join(code_for_start_bot.split('Template'))
+	code_for_start_bot = telegram_bot_name.join(code_for_start_bot.split('template'))
 
 	try:
-		exec(code_for_start_bots)
+		exec(code_for_start_bot)
 		return f'{telegram_bot_name.capitalize()} Telegram бот успешно запущен.'
 	except Exception as exception:
 		return f'Не удалось запустить {telegram_bot_name.capitalize()} Telegram бота!\nОшибка: {exception}'
@@ -43,10 +44,7 @@ def add_telegram_bot(db: DataBase, telegram_bot_name: str, telegram_bot_token: s
 	telegram_bot_name = allowed_telegram_bot_name
 	
 	if db.get_data(table='TelegramBots', where=f"name='{telegram_bot_name}'", fetchone=True) == None:
-		with open('./data/config.ini', 'a') as config_file:
-			config_file.write(f'[{telegram_bot_name.capitalize()}TelegramBot]\nPrivate=1\nToken={telegram_bot_token}\n\n')
-
-		db.insert_into(table='TelegramBots', values=(len(db.get_data(table='TelegramBots', fetchall=True)) + 1, telegram_bot_name))
+		db.insert_into(table='TelegramBots', values=(len(db.get_data(table='TelegramBots', fetchall=True)) + 1, telegram_bot_name, cryptocode.encrypt(telegram_bot_token, Variables.unique_key), 1))
 		values = """
 			user_id INT PRIMARY KEY NOT NULL,
 			chat_id INT NOT NULL,
@@ -57,11 +55,11 @@ def add_telegram_bot(db: DataBase, telegram_bot_name: str, telegram_bot_token: s
 		db.create_table(table=f'{telegram_bot_name.capitalize()}TelegramBotUsers', values=values)
 
 		os.mkdir(f'./telegram_bots/{telegram_bot_name}')
-		with open('./data/code_for_new_bots.py', 'r') as code_for_new_bots_file:
-			code_for_new_bots = code_for_new_bots_file.read()
-		code_for_new_bots = telegram_bot_name.capitalize().join(code_for_new_bots.split('Template'))
+		with open('./data/code_for_new_bot.py', 'r') as code_for_new_bot_file:
+			code_for_new_bot = code_for_new_bot_file.read()
+		code_for_new_bot = telegram_bot_name.capitalize().join(code_for_new_bot.split('Template'))
 		with open(f'./telegram_bots/{telegram_bot_name}/bot.py', 'w') as bot_file:
-			bot_file.write(code_for_new_bots)
+			bot_file.write(code_for_new_bot)
 
 		return f'Вы успешно добавили {telegram_bot_name} Telegram бота.'
 	else:
@@ -74,25 +72,7 @@ def delete_telegram_bot(db: DataBase, telegram_bot_id: int) -> str | tuple: # Ф
 	if telegram_bot_name != 'admin':
 		db.delete_record(table='TelegramBots', where=f"id='{telegram_bot_id}'")
 		shutil.rmtree(f'./telegram_bots/{telegram_bot_name}')
-
 		db.drop_table(table=f'{telegram_bot_name.capitalize()}TelegramBotUsers')
-
-		with open('./data/config.ini', 'r') as config_file:
-			config_str = config_file.read()
-			lines = config_str.split('\n')
-
-		num = 0
-		for line in lines:
-			if line == f'[{telegram_bot_name.capitalize()}TelegramBot]':
-				break
-			num += 1
-
-		for i in range(4):
-			del lines[num]
-		config_str = '\n'.join(lines)
-
-		with open('./data/config.ini', 'w') as config_file:
-			config_file.write(config_str)
 
 		return f'Вы успешно удалили {telegram_bot_name.capitalize()} Telegram бота.'
 	else:
